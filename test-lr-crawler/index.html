@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+		<script type="text/javascript" src="http://zuqqhi2.github.io/test-lr-crawler/q-learning.js"></script>
+	</head>
+	<body>
+		<script type="text/javascript">
+			var learner = new QLearner();
+			var curState = 0;
+			var prevState = 0;
+			var action = 0;
+			var actionFlg = false;
+			var numEpoch = 0;
+			var epochLimit = 30;
+			var newEpochFlg = false;
+			var firstLocation = "http://zuqqhi2.github.io/test-lr-crawler/p1.html";
+			var noAction = "-1";
+			var testFlg = false;
+			var resultCount = { 1 : 0, 2 : 0 };
+
+
+			function getCurrentState() {
+				var curLocation = document.getElementById("main").contentWindow.location.href;
+
+				if (curLocation === "http://zuqqhi2.github.io/test-lr-crawler/p1.html") {
+					return 0;
+				} else if (curLocation === "http://zuqqhi2.github.io/test-lr-crawler/ok.html") {
+					return 1;
+				} else if (curLocation === "http://zuqqhi2.github.io/test-lr-crawler/ng.html") {
+					return 2;
+				} else {
+					return 3;
+				}
+			}
+
+
+			function getReward(curState) {
+				if (curState == 1) return 10;
+				else 							 return 0;
+			}
+
+
+			function getActionByEpsilonGreedy(learner, curState, numActions) {
+				var epsilon = 0.8;
+
+				// Best action
+				if (Math.random() < epsilon) {
+					var action = learner.bestAction(curState);
+					if (!action)	return Math.floor(Math.random() * numActions);
+					else					return action;
+				// Random action
+				} else {
+					return Math.floor(Math.random() * numActions);
+				}
+			}
+
+
+			console.log("===== Learning Phase =====");
+			var timeoutId = setInterval( function() {
+				var iframeDoc = $('#main')[0].contentWindow.document;	
+				
+				// Get current state
+				prevState = curState;
+				curState = getCurrentState();
+
+				// Learning
+				learner.setState(curState);
+				reward = getReward(curState);
+				if (!testFlg && curState != prevState) {
+					if (actionFlg) { actionFlg = false; learner.add(prevState, curState, reward, action.toString()); }
+					else           { learner.add(prevState, curState, reward, noAction); }
+				}
+
+				// When agent arrives last page, it starts new episode.
+				if (curState == 1 || curState == 2) {
+					newEpochFlg = true;
+				}
+				
+				// Logging
+				if (curState == 1 || curState == 2) {
+					resultCount[curState] += 1;
+
+					console.log(
+						"Epoch:", numEpoch,
+						"PrevState:", prevState,
+						"CurState:", curState,
+						"Action:", action,
+						"Reward:", reward,
+						"OK Count:", resultCount[1],
+						"NG Count:", resultCount[2]
+					);
+				}
+
+				// Choose next action and apply it.
+				var aTags = $('a', iframeDoc);
+				if (aTags.length >= 1) {
+					// Choose action
+					if (testFlg)	action = learner.bestAction(curState);
+					else					action = getActionByEpsilonGreedy(learner, curState, aTags.length);
+
+					// Apply action
+					actionFlg = true;
+					document.getElementById('main').contentWindow.location.replace(aTags[action].href);
+				}
+
+				// New epoch
+				if (newEpochFlg) {
+					newEpochFlg = false;
+					numEpoch += 1;
+					if (numEpoch >= epochLimit && !testFlg) {
+						console.log("===== Test Phase =====");
+						testFlg = true;
+						resultCount[1] = 0;
+						resultCount[2] = 0;
+					}
+					document.getElementById('main').contentWindow.location.replace(firstLocation);
+				}
+
+				// Learning
+				learner.learn(1);
+
+				//clearTimeout(timeoutId);
+			}, 1000);
+		</script>
+
+		<iframe id="main" src="http://zuqqhi2.github.io/test-lr-crawler/p1.html" width="500" height="500" />
+	</body>
+</html>
