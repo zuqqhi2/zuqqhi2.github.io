@@ -18,6 +18,7 @@
 			var noAction = "-1";
 			var testFlg = false;
 			var resultCount = { 1 : 0, 2 : 0 };
+			var stopLimit = 100;
 
 
 			function getCurrentState() {
@@ -113,14 +114,14 @@
 						testFlg = true;
 						resultCount[1] = 0;
 						resultCount[2] = 0;
+					} else if (numEpoch >= stopLimit) {
+						clearTimeout(timeoutId);
 					}
 					document.getElementById('main').contentWindow.location.replace(firstLocation);
 				}
 
 				// Learning
 				learner.learn(1);
-
-				//clearTimeout(timeoutId);
 			}, 1000);
 		</script>
 
