@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
-		<script type="text/javascript" src="http://zuqqhi2.github.io/test-lr-crawler/q-learning.js"></script>
+		<script src="httpss://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+		<script type="text/javascript" src="https://zuqqhi2.github.io/test-lr-crawler/q-learning.js"></script>
 	</head>
 	<body>
 		<script type="text/javascript">
@@ -14,7 +14,7 @@
 			var numEpoch = 0;
 			var epochLimit = 30;
 			var newEpochFlg = false;
-			var firstLocation = "http://zuqqhi2.github.io/test-lr-crawler/p1.html";
+			var firstLocation = "https://zuqqhi2.github.io/test-lr-crawler/p1.html";
 			var noAction = "-1";
 			var testFlg = false;
 			var resultCount = { 1 : 0, 2 : 0 };
@@ -23,11 +23,11 @@
 			function getCurrentState() {
 				var curLocation = document.getElementById("main").contentWindow.location.href;
 
-				if (curLocation === "http://zuqqhi2.github.io/test-lr-crawler/p1.html") {
+				if (curLocation === "https://zuqqhi2.github.io/test-lr-crawler/p1.html") {
 					return 0;
-				} else if (curLocation === "http://zuqqhi2.github.io/test-lr-crawler/ok.html") {
+				} else if (curLocation === "https://zuqqhi2.github.io/test-lr-crawler/ok.html") {
 					return 1;
-				} else if (curLocation === "http://zuqqhi2.github.io/test-lr-crawler/ng.html") {
+				} else if (curLocation === "https://zuqqhi2.github.io/test-lr-crawler/ng.html") {
 					return 2;
 				} else {
 					return 3;
@@ -124,6 +124,6 @@
 			}, 1000);
 		</script>
 
-		<iframe id="main" src="http://zuqqhi2.github.io/test-lr-crawler/p1.html" width="500" height="500" />
+		<iframe id="main" src="https://zuqqhi2.github.io/test-lr-crawler/p1.html" width="200" height="200" />
 	</body>
 </html>
