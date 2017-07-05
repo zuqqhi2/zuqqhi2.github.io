@@ -7,7 +7,7 @@
 	</head>
 	<body>
 		<script type="text/javascript">
-			// Q-Learning�̃N���X�̏�����
+			// Q-Learningのクラスの初期化
 			var learner = new QLearner();
 			
 			var curState = 0;
@@ -23,10 +23,10 @@
 			var resultCount = { 1 : 0, 2 : 0 };
 			var stopLimit = 100;
 
-			// ���݂̏�Ԃ�Ԃ��֐��B
-			// ���݂�URL����ԂƂ��čl����B
-			// �����ʒu�����0�A�������S�[�������1�A������S�[���͏��2�Ƃ���B
-			// ����ȊO�ɐi�ނ��Ƃ͖������A����ȊO�����3�Ƃ���B
+			// 現在の状態を返す関数。
+			// 現在のURLを状態として考える。
+			// 初期位置を状態0、正しいゴールを状態1、誤ったゴールは状態2とする。
+			// それ以外に進むことは無いが、それ以外を状態3とする。
 			function getCurrentState() {
 				var curLocation = document.getElementById("main").contentWindow.location.href;
 
@@ -41,15 +41,15 @@
 				}
 			}
 
-			// ��Ԃɉ�������V��Ԃ��֐��B
-			// �������S�[���ɒ��������V10�^���āA����ȊO�͕�V�Ȃ��B
+			// 状態に応じた報酬を返す関数。
+			// 正しいゴールに着いたら報酬10与えて、それ以外は報酬なし。
 			function getReward(curState) {
 				if (curState == 1) return 10;
 				else               return 0;
 			}
 
-			// �ÃO���[�f�B�Ƃ������@�ŁA�s���̔ԍ���Ԃ��֐��B
-			// 80%�̊m���ň�ԗǂ������ȍs�������āA����ȊO�̓����_���ȍs����Ԃ��B
+			// εグリーディという方法で、行動の番号を返す関数。
+			// 80%の確率で一番良さそうな行動をして、それ以外はランダムな行動を返す。
 			function getActionByEpsilonGreedy(learner, curState, numActions) {
 				var epsilon = 0.8;
 
@@ -64,33 +64,33 @@
 				}
 			}
 
-			// ����J�n
-			// setInterval��1�b���ɃG�[�W�F���g�ɓ��삳������B
+			// 動作開始
+			// setIntervalで1秒毎にエージェントに動作させる環境。
 			console.log("===== Learning Phase =====");
 			var timeoutId = setInterval( function() {
-				// iframe�̒������𓮂����̂ŁAiframe��Document�I�u�W�F�N�g��ێ����Ă����B
+				// iframeの中だけを動かすので、iframeのDocumentオブジェクトを保持しておく。
 				var iframeDoc = $('#main')[0].contentWindow.document;
 			
-				// 1. ���݂̏�Ԃ��擾
+				// 1. 現在の状態を取得
 				prevState = curState;
 				curState = getCurrentState();
 				learner.setState(curState);
 
-				// 2. ���݂̏�Ԃ����V���擾���āA�G�[�W�F���g�ɋL��������B
-				//    �{���́A�s�������Ă����V��������čs���w�j�̃A�b�v�f�[�g�����邪�A
-				//    ����̓y�[�W�J�ڂƂ����^�X�N�Ƃ������Ƃ�����A�ȒP�ɏ������߂ɏ��Ԃ�ς��Ă���B
+				// 2. 現在の状態から報酬を取得して、エージェントに記憶させる。
+				//    本当は、行動をしてから報酬をもらって行動指針のアップデートをするが、
+				//    今回はページ遷移というタスクということもあり、簡単に書くために順番を変えてある。
 				reward = getReward(curState);
 				if (!testFlg && curState != prevState) {
 					if (actionFlg) { actionFlg = false; learner.add(prevState, curState, reward, action.toString()); }
 					else           { learner.add(prevState, curState, reward, noAction); }
 				}
 
-				// �������������Ȃ��ɂ�����炸�S�[���ɒH�蒅������A�����ʒu�ɖ߂��Ď��̎��s�Ɉڂ�B
+				// 正しい正しくないにかかわらずゴールに辿り着いたら、初期位置に戻して次の試行に移る。
 				if (curState == 1 || curState == 2) {
 					newEpochFlg = true;
 				}
 				
-				// �r�����ʂ����O�Ƃ��ĕ\���B
+				// 途中結果をログとして表示。
 				if (curState == 1 || curState == 2) {
 					resultCount[curState] += 1;
 
@@ -105,23 +105,23 @@
 					);
 				}
 
-				// 3. �w�K���Ԓ��̓ÃO���[�f�B�œ����āA�w�K���Ԃ��I������疈���ԗǂ��s����I�ԁB
-				//    �����āA�s�������s����B
-				//    ���Ȃ݂ɁA�ǂ�a�^�O��I��ł���URL�ɔ�Ԃ����s���Ƃ��Ă���B
-				//    �s��0�͍ŏ���a�^�O�̃����N��ɔ�Ԃ��Ƃ��Ӗ�����B
+				// 3. 学習期間中はεグリーディで動いて、学習期間が終わったら毎回一番良い行動を選ぶ。
+				//    そして、行動を実行する。
+				//    ちなみに、どのaタグを選んでそのURLに飛ぶかを行動としている。
+				//    行動0は最初のaタグのリンク先に飛ぶことを意味する。
 				var aTags = $('a', iframeDoc);
 				if (aTags.length >= 1) {
-					// �s���̑I��
+					// 行動の選択
 					if (testFlg)  action = learner.bestAction(curState);
 					else          action = getActionByEpsilonGreedy(learner, curState, aTags.length);
 
-					// �s�������s
+					// 行動を実行
 					actionFlg = true;
 					document.getElementById('main').contentWindow.location.replace(aTags[action].href);
 				}
 
-				// �V�������s�Ɉڂ�B
-				// �w�K���Ԃ��I�������A�J�E���g���N���A���ăe�X�g���ԂɈڂ�B
+				// 新しい試行に移る。
+				// 学習期間が終わったら、カウントをクリアしてテスト期間に移る。
 				if (newEpochFlg) {
 					newEpochFlg = false;
 					numEpoch += 1;
@@ -136,13 +136,13 @@
 					document.getElementById('main').contentWindow.location.replace(firstLocation);
 				}
 
-				// 4. �w�K�B���l�֐��ƌĂ΂��G�[�W�F���g�̍s���w�j���A�b�v�f�[�g����B
-				// ��V���擾�������Ƃ����Ɏ��s�ł���͂������A�G���[�ɂȂ��Ă��܂��̂ňʒu�����炵���B
-				// �G���[�ɂȂ闝�R�͕s���B
-				// �����ɂ��炵�Ă�����I�ɂ͕ω��͂Ȃ��B
-				// learn���\�b�h�͍��܂œo�^������ԑJ�ځA�s���A��V�����ƂɁA
-				// �G�[�W�F���g�̓��̒��ŃV�~�����[�V���������ĉ��l�ϐ����A�b�v�f�[�g����B
-				learner.learn(1);
+				// 4. 学習。価値関数と呼ばれるエージェントの行動指針をアップデートする。
+				// 報酬を取得したあとすぐに実行できるはずだが、エラーになってしまうので位置をずらした。
+				// エラーになる理由は不明。
+				// ここにずらしても動作的には変化はない。
+				// learnメソッドは今まで登録した状態遷移、行動、報酬をもとに、
+				// エージェントの頭の中でシミュレーションをして価値観数をアップデートする。
+				learner.learn(5);
 			}, 1000);
 		</script>
 
