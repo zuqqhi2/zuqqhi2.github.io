@@ -6,7 +6,9 @@
 	</head>
 	<body>
 		<script type="text/javascript">
+			// Q-Learningのクラスの初期化
 			var learner = new QLearner();
+			
 			var curState = 0;
 			var prevState = 0;
 			var action = 0;
@@ -20,7 +22,10 @@
 			var resultCount = { 1 : 0, 2 : 0 };
 			var stopLimit = 100;
 
-
+			// 現在の状態を返す関数。
+			// 現在のURLを状態として考える。
+			// 初期位置を状態0、正しいゴールを状態1、誤ったゴールは状態2とする。
+			// それ以外に進むことは無いが、それ以外を状態3とする。
 			function getCurrentState() {
 				var curLocation = document.getElementById("main").contentWindow.location.href;
 
@@ -35,50 +40,57 @@
 				}
 			}
 
-
+			// 状態に応じた報酬を返す関数。
+			// 正しいゴールに着いたら報酬10与えて、それ以外は報酬なし。
 			function getReward(curState) {
 				if (curState == 1) return 10;
-				else 							 return 0;
+				else               return 0;
 			}
 
-
+			// εグリーディという方法で、行動の番号を返す関数。
+			// 80%の確率で一番良さそうな行動をして、それ以外はランダムな行動を返す。
 			function getActionByEpsilonGreedy(learner, curState, numActions) {
 				var epsilon = 0.8;
 
 				// Best action
 				if (Math.random() < epsilon) {
 					var action = learner.bestAction(curState);
-					if (!action)	return Math.floor(Math.random() * numActions);
-					else					return action;
+					if (!action) return Math.floor(Math.random() * numActions);
+					else         return action;
 				// Random action
 				} else {
 					return Math.floor(Math.random() * numActions);
 				}
 			}
 
-
+			// iframeの中だけを動かすので、iframeのDocumentオブジェクトを保持しておく。
+			var iframeDoc = $('#main')[0].contentWindow.document;
+			
+			// 動作開始
+			// setIntervalで1秒毎にエージェントに動作させる環境。
 			console.log("===== Learning Phase =====");
 			var timeoutId = setInterval( function() {
-				var iframeDoc = $('#main')[0].contentWindow.document;	
 				
-				// Get current state
+				// 1. 現在の状態を取得
 				prevState = curState;
 				curState = getCurrentState();
-
-				// Learning
 				learner.setState(curState);
+
+				// 2. 現在の状態から報酬を取得して、エージェントに記憶させる。
+				//    本当は、行動をしてから報酬をもらって行動指針のアップデートをするが、
+				//    今回はページ遷移というタスクということもあり、簡単に書くために順番を変えてある。
 				reward = getReward(curState);
 				if (!testFlg && curState != prevState) {
 					if (actionFlg) { actionFlg = false; learner.add(prevState, curState, reward, action.toString()); }
 					else           { learner.add(prevState, curState, reward, noAction); }
 				}
 
-				// When agent arrives last page, it starts new episode.
+				// 正しい正しくないにかかわらずゴールに辿り着いたら、初期位置に戻して次の試行に移る。
 				if (curState == 1 || curState == 2) {
 					newEpochFlg = true;
 				}
 				
-				// Logging
+				// 途中結果をログとして表示。
 				if (curState == 1 || curState == 2) {
 					resultCount[curState] += 1;
 
@@ -93,19 +105,23 @@
 					);
 				}
 
-				// Choose next action and apply it.
+				// 3. 学習期間中はεグリーディで動いて、学習期間が終わったら毎回一番良い行動を選ぶ。
+				//    そして、行動を実行する。
+				//    ちなみに、どのaタグを選んでそのURLに飛ぶかを行動としている。
+				//    行動0は最初のaタグのリンク先に飛ぶことを意味する。
 				var aTags = $('a', iframeDoc);
 				if (aTags.length >= 1) {
-					// Choose action
-					if (testFlg)	action = learner.bestAction(curState);
-					else					action = getActionByEpsilonGreedy(learner, curState, aTags.length);
+					// 行動の選択
+					if (testFlg)  action = learner.bestAction(curState);
+					else          action = getActionByEpsilonGreedy(learner, curState, aTags.length);
 
-					// Apply action
+					// 行動を実行
 					actionFlg = true;
 					document.getElementById('main').contentWindow.location.replace(aTags[action].href);
 				}
 
-				// New epoch
+				// 新しい試行に移る。
+				// 学習期間が終わったら、カウントをクリアしてテスト期間に移る。
 				if (newEpochFlg) {
 					newEpochFlg = false;
 					numEpoch += 1;
@@ -120,7 +136,12 @@
 					document.getElementById('main').contentWindow.location.replace(firstLocation);
 				}
 
-				// Learning
+				// 4. 学習。価値関数と呼ばれるエージェントの行動指針をアップデートする。
+				// 報酬を取得したあとすぐに実行できるはずだが、エラーになってしまうので位置をずらした。
+				// エラーになる理由は不明。
+				// ここにずらしても動作的には変化はない。
+				// learnメソッドは今まで登録した状態遷移、行動、報酬をもとに、
+				// エージェントの頭の中でシミュレーションをして価値観数をアップデートする。
 				learner.learn(1);
 			}, 1000);
 		</script>
