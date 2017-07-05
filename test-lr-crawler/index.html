@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 	<head>
+		<meta charset="UTF-8">
 		<script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
 		<script type="text/javascript" src="https://zuqqhi2.github.io/test-lr-crawler/q-learning.js"></script>
 	</head>
@@ -63,14 +64,13 @@
 				}
 			}
 
-			// iframeの中だけを動かすので、iframeのDocumentオブジェクトを保持しておく。
-			var iframeDoc = $('#main')[0].contentWindow.document;
-			
 			// 動作開始
 			// setIntervalで1秒毎にエージェントに動作させる環境。
 			console.log("===== Learning Phase =====");
 			var timeoutId = setInterval( function() {
-				
+				// iframeの中だけを動かすので、iframeのDocumentオブジェクトを保持しておく。
+				var iframeDoc = $('#main')[0].contentWindow.document;
+			
 				// 1. 現在の状態を取得
 				prevState = curState;
 				curState = getCurrentState();
